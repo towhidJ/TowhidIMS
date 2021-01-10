@@ -50,9 +50,13 @@ namespace TowhidIMS.Controllers
         {
             if (ModelState.IsValid)
             {
-                db.Customers.Add(customer);
-                db.SaveChanges();
-                return RedirectToAction("Index");
+                  if (customer.Balance == null)
+                  {
+                      customer.Balance = 0;
+                  }
+                  db.Customers.Add(customer);
+                  db.SaveChanges();
+                  RedirectToAction("Index");
             }
 
             return View(customer);
