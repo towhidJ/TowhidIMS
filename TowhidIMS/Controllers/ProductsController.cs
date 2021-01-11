@@ -17,9 +17,32 @@ namespace TowhidIMS.Controllers
         // GET: Products
         public ActionResult Index()
         {
+            ViewBag.Suppliers = db.Suppliers;
             var products = db.Products.Include(p => p.Location).Include(p => p.Supplier);
             return View(products.ToList());
         }
+
+        public ActionResult SearchData(string suppId)
+        {
+            if (suppId.Trim() == string.Empty)
+            {
+
+                return PartialView("_SelectedProducts", db.Products.OrderBy(i => i.Id).ToList());
+
+            }
+            else
+            {
+                int intSuppId = Int32.Parse(suppId.Trim());
+
+                IQueryable<Product> selectedProducts = null;
+                selectedProducts = db.Products.Where(p => p.SupplierId == intSuppId);
+                return PartialView("_SelectedProducts", selectedProducts.OrderBy(i => i.Id).ToList());
+
+            }
+
+        }
+
+
 
         // GET: Products/Details/5
         public ActionResult Details(int? id)
@@ -39,31 +62,46 @@ namespace TowhidIMS.Controllers
         // GET: Products/Create
         public ActionResult Create()
         {
-            ViewBag.LocationId = new SelectList(db.Locations, "Id", "Name");
-            ViewBag.SupplierId = new SelectList(db.Suppliers, "Id", "Name");
-            return View();
+            ViewBag.Suppliers = db.Suppliers;
+            Product prod = new Product();
+
+            prod.PurchasePrice = 0;
+            prod.SalePrice = 0;
+            prod.Stock = 0;
+
+            prod.Saleable = true;
+            return View(prod);
+            
         }
 
-        // POST: Products/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to, for 
-        // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
+        
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create([Bind(Include = "Id,Name,PurchasePrice,SalePrice,Stock,PerPack,totalPiece,Saleable,RackPosition,SupplierId,Image,Remarks,BarCode,ReOrder,LocationId,CreateDate,UpdateDate")] Product product)
+        public ActionResult Create([Bind(Include = "Id,Name,PurchasePrice,SalePrice,Stock,SupplierId,Saleable,PerPack,CreateDate")] Product product)
         {
+            if (product.Stock == null)
+            {
+                product.Stock = 0;
+            }
+
+            if (product.PerPack == null || product.PerPack == 0)
+            {
+                product.PerPack = 1;
+            }
+
+            product.Stock = product.Stock * product.PerPack;
+            product.CreateDate = DateTime.Today.Date;
             if (ModelState.IsValid)
             {
                 db.Products.Add(product);
                 db.SaveChanges();
                 return RedirectToAction("Index");
             }
-
-            ViewBag.LocationId = new SelectList(db.Locations, "Id", "Name", product.LocationId);
-            ViewBag.SupplierId = new SelectList(db.Suppliers, "Id", "Name", product.SupplierId);
+            ViewBag.Suppliers = db.Suppliers;
             return View(product);
         }
 
-        // GET: Products/Edit/5
+        
         public ActionResult Edit(int? id)
         {
             if (id == null)
@@ -71,30 +109,39 @@ namespace TowhidIMS.Controllers
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
             Product product = db.Products.Find(id);
+            product.Stock = product.Stock / product.PerPack;
+            ViewBag.SuppName = product.Supplier.Name;
             if (product == null)
             {
                 return HttpNotFound();
             }
-            ViewBag.LocationId = new SelectList(db.Locations, "Id", "Name", product.LocationId);
-            ViewBag.SupplierId = new SelectList(db.Suppliers, "Id", "Name", product.SupplierId);
             return View(product);
         }
 
-        // POST: Products/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to, for 
-        // more details see https://go.microsoft.com/fwlink/?LinkId=317598.
+        
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit([Bind(Include = "Id,Name,PurchasePrice,SalePrice,Stock,PerPack,totalPiece,Saleable,RackPosition,SupplierId,Image,Remarks,BarCode,ReOrder,LocationId,CreateDate,UpdateDate")] Product product)
+        public ActionResult Edit([Bind(Include = "Id,Name,PurchasePrice,SalePrice,Stock,SupplierId,Saleable,PerPack,UpdateDate")] Product product)
         {
+            if (product.Stock == null)
+            {
+                product.Stock = 0;
+            }
+
+            if (product.PerPack == null || product.PerPack == 0)
+            {
+                product.PerPack = 1;
+            }
+
+            product.Stock = product.Stock * product.PerPack;
+            product.UpdateDate = DateTime.Today.Date;
             if (ModelState.IsValid)
             {
+
                 db.Entry(product).State = EntityState.Modified;
                 db.SaveChanges();
                 return RedirectToAction("Index");
             }
-            ViewBag.LocationId = new SelectList(db.Locations, "Id", "Name", product.LocationId);
-            ViewBag.SupplierId = new SelectList(db.Suppliers, "Id", "Name", product.SupplierId);
             return View(product);
         }
 
